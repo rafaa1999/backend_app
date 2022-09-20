@@ -10,7 +10,7 @@ const User =require("./User")
 // force the database to be
 // recreated
 sequelize.sync({force:true}).then(async()=>{
-    for(let i =1;i<=25;i++){
+    for(let i =1;i<=5;i++){
         const user={
             username:`user${i}`,
             email:`user${i}@gmail.com`,
@@ -75,10 +75,42 @@ app.get("/users",async (req,res)=>{
         totalPages:Math.ceil( users.count / size) // the number of pages
     })
 })
+
+/**    create function to handel errors and define their status */
+
+function InvalidIdException(){
+    this.status=400
+    this.message="invalid id"
+}
+
+function UserNotFoundException(){
+    this.status=404
+    this.message="use not found"
+}
+
+
+
+
 // get one user
-app.get("/users/:id",async (req,res)=>{
-    const req_id =req.params.id
+// we use next just to throw error
+// to the error handle to catch it
+app.get("/users/:id", async(req,res,next)=>{
+
+    const req_id =Number.parseInt(req.params.id)
+    
+    if(Number.isNaN(req_id)){    
+        // res.status(400).send({message:"invalid id"})
+        // next is a function
+        // next(new Error("invalid id"))
+        next(new InvalidIdException())
+    }
+
    const user = await User.findOne({where: {id : req_id}})
+    // check the use exit or not
+    if(!user){
+        // next(new Error("user not found"))
+        next(new  UserNotFoundException())
+    }
     res.send(user)
 })
 // update
@@ -95,6 +127,22 @@ app.delete("/users/:id",async (req,res)=>{
     const req_id =req.params.id
     await User.destroy({where: {id : req_id}})
     res.send(" user has been deleted")
+})
+
+// exception handlers
+// the order is essential
+// the handlers must be the last
+app.use((err,req,res,next)=>{
+    // we throw err from one route
+    // and we put right here in
+    // the exception handlers
+    // to log it
+    res.status(err.status).send({
+        message:err.message,
+        timestamp:Date.now(),
+        // specify the origin or error
+        path:req.originalUrl
+    })
 })
 
 app.listen(3000,()=>{
