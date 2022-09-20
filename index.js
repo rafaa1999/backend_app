@@ -3,6 +3,7 @@ const express=require("express")
 
 const sequelize=require("./database")
 const User =require("./User")
+const Article=require("./article")
 
 // create the database
 // async operation then
@@ -10,13 +11,17 @@ const User =require("./User")
 // force the database to be
 // recreated
 sequelize.sync({force:true}).then(async()=>{
-    for(let i =1;i<=5;i++){
+    for(let i =1;i<=15;i++){
         const user={
             username:`user${i}`,
             email:`user${i}@gmail.com`,
             password: `pass`
         }
         await User.create(user)
+        const article={
+            content:`article content ${i}`
+        }
+        await Article.create(article)
     }
 })
 
@@ -25,6 +30,13 @@ const app=express()
 // middelware
 // parse the data 
 app.use(express.json())
+
+const thisWillRunInEveryRequest=(req,res,next)=>{
+    console.log("running the middleware for",req.method,req.originalUrl)
+    next()
+}
+// we will use the function globally
+app.use(thisWillRunInEveryRequest)
 
 app.post("/users",async (req,res)=>{
     // insert data to User
@@ -40,25 +52,56 @@ app.post("/users",async (req,res)=>{
     res.send("user is inserted")
 })
 
-app.get("/users",async (req,res)=>{
-    // we don't trust the input of user
-    //  we do some checking of the values
+/**------------------------pagination middelware----------------------------------- */
 
-    const pageAsNumber =Number.parseInt(req.query.page) 
-    const sizeAsNumber =Number.parseInt(req.query.size)
+                const paggination=(req,res,next)=>{
+                    const pageAsNumber =Number.parseInt(req.query.page) 
+                    const sizeAsNumber =Number.parseInt(req.query.size)
 
-    let page=0 // as default we initially start from 0
+                    let page=0 // as default we initially start from 0
 
-    if(!Number.isNaN(pageAsNumber) && pageAsNumber>0){
-            page= pageAsNumber 
-    }
+                    if(!Number.isNaN(pageAsNumber) && pageAsNumber>0){
+                            page= pageAsNumber 
+                    }
 
-    let size=10 // as default we initially have 10 items
+                    let size=10 // as default we initially have 10 items
 
-    if(!Number.isNaN(sizeAsNumber) && sizeAsNumber<10 && sizeAsNumber>0){
-        size=sizeAsNumber
-    }
+                    if(!Number.isNaN(sizeAsNumber) && sizeAsNumber<10 && sizeAsNumber>0){
+                        size=sizeAsNumber
+                    }
 
+                    // send new values of page and size in the req object
+                    req.paggination={
+                        page:page,
+                        size:size
+                    }
+
+                    next() // next function the third parametre
+                }
+/**------------------------pagination middelware----------------------------------- */
+
+
+
+app.get("/users",paggination,async (req,res)=>{
+    // // we don't trust the input of user
+    // //  we do some checking of the values
+
+    // const pageAsNumber =Number.parseInt(req.query.page) 
+    // const sizeAsNumber =Number.parseInt(req.query.size)
+
+    // let page=0 // as default we initially start from 0
+
+    // if(!Number.isNaN(pageAsNumber) && pageAsNumber>0){
+    //         page= pageAsNumber 
+    // }
+
+    // let size=10 // as default we initially have 10 items
+
+    // if(!Number.isNaN(sizeAsNumber) && sizeAsNumber<10 && sizeAsNumber>0){
+    //     size=sizeAsNumber
+    // }
+
+    const {page,size} =req.paggination // get values from the paggination middleware
 
     // get query for the url
     // const page =req.query.page
@@ -88,23 +131,29 @@ function UserNotFoundException(){
     this.message="use not found"
 }
 
+/**  create middelware which is a function    */
+const idNumberControl=(req,res,next)=>{
+    const req_id =Number.parseInt(req.params.id)
+    
+    if(Number.isNaN(req_id)){    
+        throw new InvalidIdException()
+    }
+    // pass to the route handling function 
+    // the third parametre
+    next() 
+
+}
+
+
 
 
 
 // get one user
 // we use next just to throw error
 // to the error handle to catch it
-app.get("/users/:id", async(req,res,next)=>{
-
-    const req_id =Number.parseInt(req.params.id)
-    
-    if(Number.isNaN(req_id)){    
-        // res.status(400).send({message:"invalid id"})
-        // next is a function
-        // next(new Error("invalid id"))
-        next(new InvalidIdException())
-    }
-
+// check the natural of middelware
+app.get("/users/:id",idNumberControl, async(req,res,next)=>{
+    const req_id=req.params.id
    const user = await User.findOne({where: {id : req_id}})
     // check the use exit or not
     if(!user){
@@ -114,7 +163,7 @@ app.get("/users/:id", async(req,res,next)=>{
     res.send(user)
 })
 // update
-app.put("/users/:id",async (req,res)=>{
+app.put("/users/:id",idNumberControl, async (req,res)=>{
     const req_id =req.params.id
    const user = await User.findOne({where: {id : req_id}})
    user.username=req.body.username
@@ -123,11 +172,55 @@ app.put("/users/:id",async (req,res)=>{
    res.send ("user updated")
 })
 // delete one user
-app.delete("/users/:id",async (req,res)=>{
+app.delete("/users/:id",idNumberControl, async (req,res)=>{
     const req_id =req.params.id
     await User.destroy({where: {id : req_id}})
     res.send(" user has been deleted")
 })
+
+/**------------------------------------------------ ARTICLES------------------------------------------------------ */
+// get all articles
+app.get("/articles",paggination,async (req,res)=>{
+
+    const {page,size} =req.paggination // get values from the paggination middleware
+
+   const articleWithCount = await Article.findAndCountAll({
+    limit:size ,// how many item in one page
+    offset: page * size ,// the beginning to catch the items
+   })
+    res.send({
+        content:articleWithCount.rows,
+        totalPages:Math.ceil( articleWithCount.count / size) // the number of pages
+    })
+})
+// get one article
+app.get("/articles/:id",idNumberControl, async(req,res,next)=>{
+    const req_id=req.params.id
+   const article = await Article.findOne({where: {id : req_id}})
+    // check the use exit or not
+    if(!article){
+        // next(new Error("user not found"))
+        next(new  UserNotFoundException())
+    }
+    res.send(article)
+})
+// update article
+app.put("/articles/:id",idNumberControl, async (req,res)=>{
+    const req_id =req.params.id
+   const article = await Article.findOne({where: {id : req_id}})
+   article.content=req.body.content
+   // update the base
+   await article.save()
+   res.send ("article updated")
+})
+// delete one article
+app.delete("/articles/:id",idNumberControl, async (req,res)=>{
+    const req_id =req.params.id
+    await Article.destroy({where: {id : req_id}})
+    res.send(" article has been deleted")
+})
+
+
 
 // exception handlers
 // the order is essential
