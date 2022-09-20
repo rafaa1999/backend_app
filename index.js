@@ -1,5 +1,6 @@
 const express=require("express")
 
+
 const sequelize=require("./database")
 const User =require("./User")
 
@@ -8,7 +9,16 @@ const User =require("./User")
 // we have a promise
 // force the database to be
 // recreated
-sequelize.sync({force:true}).then(()=>{console.log("database is steady")})
+sequelize.sync({force:true}).then(async()=>{
+    for(let i =1;i<=25;i++){
+        const user={
+            username:`user${i}`,
+            email:`user${i}@gmail.com`,
+            password: `pass`
+        }
+        await User.create(user)
+    }
+})
 
 const app=express()
 
@@ -31,8 +41,39 @@ app.post("/users",async (req,res)=>{
 })
 
 app.get("/users",async (req,res)=>{
-   const users = await User.findAll()
-    res.send(users)
+    // we don't trust the input of user
+    //  we do some checking of the values
+
+    const pageAsNumber =Number.parseInt(req.query.page) 
+    const sizeAsNumber =Number.parseInt(req.query.size)
+
+    let page=0 // as default we initially start from 0
+
+    if(!Number.isNaN(pageAsNumber) && pageAsNumber>0){
+            page= pageAsNumber 
+    }
+
+    let size=10 // as default we initially have 10 items
+
+    if(!Number.isNaN(sizeAsNumber) && sizeAsNumber<10 && sizeAsNumber>0){
+        size=sizeAsNumber
+    }
+
+
+    // get query for the url
+    // const page =req.query.page
+    // const size=req.query.size
+
+    // findAndCountAll give the number
+    // of items
+   const users = await User.findAndCountAll({
+    limit:size ,// how many item in one page
+    offset: page * size ,// the beginning to catch the items
+   })
+    res.send({
+        content:users.rows,
+        totalPages:Math.ceil( users.count / size) // the number of pages
+    })
 })
 // get one user
 app.get("/users/:id",async (req,res)=>{
