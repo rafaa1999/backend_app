@@ -25,20 +25,33 @@ const getUsers=async(paggination)=>{
    const users = await User.findAndCountAll({
     limit:size ,// how many item in one page
     offset: page * size ,// the beginning to catch the items
+    attributes:['id', 'username', 'email'] // choose which fields we take'em
    })
         return{
+        // content:users.rows.map(user=>{
+        //     const userAsJson=user.get()  // to get the key:value of json format
+        //     delete userAsJson.password  // delete the field of password,don't show it for the user
+        //     return userAsJson
+        // }),
         content:users.rows,
         totalPages:Math.ceil( users.count / size) // the number of pages
     }
 }
 
 const getUser=async(id)=>{
-    const user = await User.findOne({where: {id : id}})
+    const user = await User.findOne({
+        where: {id : id},
+        attributes:['id', 'username', 'email']
+    })
      // check the use exit or not
      if(!user){
          // next(new Error("user not found"))
          throw new  UserNotFoundException()
      }
+
+    //  //  console.log(userAsJson)
+    //  const userAsJson=user.get()  // to get the key:value of json format
+    //  delete userAsJson.password  // delete the field of password,don't show it for the user
      return user
 }
 
