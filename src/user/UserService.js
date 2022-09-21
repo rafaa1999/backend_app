@@ -1,12 +1,15 @@
 const User = require("./User")
 const UserNotFoundException=require("./UserNotFoundException")
+const bcrypt = require("bcrypt")
 
 
 
 // do all the services that related
 // to UserRouter
-const create=async (user)=>{
-    await User.create(user)
+const create=async (body)=>{
+    const{username, email, password}= body
+    const hashedPassword = await bcrypt.hash(password, 10)
+    await User.create({username,email,password: hashedPassword})
 }
 
 const getUsers=async(paggination)=>{
