@@ -1,13 +1,15 @@
-const express=require("express")
-const router=express.Router()
-const idNumberControl= require("../shared/idNumberControl")
+const express = require("express")
+const router = express.Router()
+const idNumberControl = require("../shared/idNumberControl")
 const paggination = require("../shared/pagination")
 const UserService = require("./UserService")
 const ValidationException= require("../shared/ValidationException")
+const basicAuthentication = require("../shared/basicAuthentication")
 
 // ...rest of the initial code omitted for simplicity.
 // body and validationResult are functions
 const { body, validationResult } = require('express-validator');
+const User = require("./User")
 
 
 
@@ -79,9 +81,49 @@ router.get("/users/:id",idNumberControl, async(req,res,next)=>{
 
 })
 // update
-router.put("/users/:id",idNumberControl, async (req,res)=>{
-    await UserService.update(req.params.id,req.body )
-   res.send ("user updated")
+router.put("/users/:id",idNumberControl,basicAuthentication, async (req,res)=>{
+//     // take the value of authoriszation from header
+//     const authorization=req.headers.authorization
+
+//     if(!authorization){
+//         res.status(403).send({message: "Forbidden there is no authorization header "})
+//     }
+
+//    // Basic dXNlcjFAZ21haWwuY29tOnBhc3MwNw==  // the value of auth header
+//    const encoded = authorization.substring(6) // encoded value
+//    const decoded = Buffer.from(encoded,'base64').toString('ascii') // decoded value
+//    // user1@gmail.com:pass07
+//    const[email,password] = decoded.split(':') // give ['user1@gmail.com','pass07']
+
+//    const authenticatedUser = await UserService.findByEmail(email) // check the existence of user
+//    if(!authenticatedUser){
+//     res.status(403).send({message: "Forbidden email doesn't exist  "})
+//    }
+
+//    const match = await bcrypt.compare(password,authenticatedUser.password) // check if the password is correct or not 
+//    if(!match){
+//     res.status(403).send({message: "Forbidden password "})
+//    }
+
+    const authenticatedUser = req.authenticatedUser // get the authenticatedUser from the req
+    if(!authenticatedUser){
+        res.status(403).send({message: "Forbidden there is no auth "}) 
+    }
+
+   const id = req.params.id
+   if(authenticatedUser.id !==  id){
+    res.status(403).send({message: "Forbidden email is different then the id of req "}) // check the id
+   } 
+
+   /**----------------simple solution------------------- */
+        const user = await User.findOne({where: {id :id}})
+        user.username=req.body.username
+        // update the base
+        await user.save()
+    /**----------------simple solution------------------- */
+
+    // await UserService.update(id,req.body )
+    res.send ("user updated")
 })
 // delete one user
 router.delete("/users/:id",idNumberControl, async (req,res)=>{
