@@ -1,0 +1,10 @@
+{
+  "database":{
+    "db": "staging-db",
+    "username": "staging-user",
+    "password": "staging-pass",
+    "dialect": "sqlite",
+    "host": "./staging.sqlite",
+    "logging": false
+  }
+}

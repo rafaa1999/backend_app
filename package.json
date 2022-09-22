@@ -4,12 +4,15 @@
   "description": "build a full backend app using nodejs",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon index.js"
+    "start": "cross-env NODE_ENV=development nodemon index.js",
+    "start:prod": "cross-env NODE_ENV=production node index.js",
+    "start:staging": "cross-env NODE_ENV=staging node index.js"
   },
   "author": "rafaa benrhouma",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^5.0.1",
+    "config": "^3.3.8",
     "express": "^4.18.1",
     "express-validator": "^6.14.2",
     "i18next": "^21.9.2",
@@ -19,6 +22,7 @@
     "sqlite3": "^5.1.1"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "nodemon": "^2.0.20"
   }
 }
