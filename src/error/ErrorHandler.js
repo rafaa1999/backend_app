@@ -5,11 +5,11 @@ module.exports=(err,req,res,next)=>{
     if(errors){
         ValidationErrors= {}
         errors.forEach(errors => {
-            ValidationErrors[errors.param]= errors.msg
+            ValidationErrors[errors.param]= req.t(errors.msg)
         });
     }
     res.status(status).send({
-        message:message,
+        message:req.t(message),
         timestamp:Date.now(),
         // specify the origin or error 
         path:req.originalUrl,

@@ -1,0 +1,10 @@
+{
+    "user_create_success": "client enregistre",
+    "use_not_found_exception" :"client n'existe pas",
+    "invalid_id_exception":"id incorrecte",
+    "validation_exception":"request body invalidee",
+    "username_null":"Username ne prend pas un valeur null",
+    "username_size":"if faut aue Username prend un nombres des character entre min 4 et max 32 ",
+    "email_invalid":"il faut que l'email etre valide",
+    "email_inuse":"Enail est utilisee"
+}

@@ -16,16 +16,16 @@ const { body, validationResult } = require('express-validator');
 // body is to check the req 
 // specify the message of validation
 router.post("/users",
-body('username').notEmpty().withMessage("Username can not be null")
+body('username').notEmpty().withMessage('username_null')
 .bail() // if username is null hence stop in at this point
-.isLength({min:4, max:32}).withMessage("Username must have min 4 and max 32 character"),
-body('email').isEmail().withMessage("must be a valid email")
+.isLength({min:4, max:32}).withMessage('username_size'),
+body('email').isEmail().withMessage('email_invalid')
 .bail()
 // check the uniqueness of the main enter
 .custom(async (email)=>{
    const user= await UserService.findByEmail(email)
    if(user){
-    throw new Error("this email is in use")
+    throw new Error('email_inuse')
    }
 }),
 async (req,res,next)=>{
@@ -37,7 +37,8 @@ async (req,res,next)=>{
 
    }
     await UserService.create(req.body)
-    res.send("user is inserted")
+    // get the translation
+    res.send( {message: req.t('user_create_success')})
 })
 
 // get all users

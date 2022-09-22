@@ -3,11 +3,26 @@ const express=require("express")
 const UserRouter=require("./user/UserRouter")
 const ArticleRouter = require("./article/ArticleRouter")
 const ErrorHandler= require("./error/ErrorHandler")
+// for the internationalization 
+const i18next= require("i18next")
+const Backend= require("i18next-fs-backend")
+const middleware= require("i18next-http-middleware")
+
+// for the internationalization 
+i18next.use(Backend).use(middleware.LanguageDetector)
+    .init({
+        fallbackLng: 'en', // the default language
+        backend:{
+            loadPath: './locales/{{lng}}/translation.json'
+        }
+    })
 
 
 const app=express()
+// use i18 as middleware
+app.use(middleware.handle(i18next))
 
-// middelware
+// middleware
 // parse the data 
 app.use(express.json())
 
